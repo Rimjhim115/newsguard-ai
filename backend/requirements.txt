@@ -1,0 +1,27 @@
+# Web Framework
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+
+# Database
+sqlalchemy==2.0.30
+pymysql==1.1.1
+cryptography==42.0.7
+
+# Authentication
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.9
+
+# ML
+scikit-learn==1.4.2
+pandas==2.2.2
+numpy==1.26.4
+joblib==1.4.2
+
+# Settings management
+python-dotenv==1.0.1
+pydantic-settings==2.2.1
+
+# Testing
+pytest==8.2.0
+httpx==0.27.0
