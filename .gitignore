@@ -4,6 +4,10 @@ __pycache__/
 venv/
 .env
 
+# Large ML/Data files
+backend/app/ml/artifacts/Fake.csv
+backend/app/ml/artifacts/True.csv
+
 # Node
 node_modules/
 frontend/dist/
