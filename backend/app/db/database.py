@@ -1,17 +1,20 @@
-# backend/app/db/database.py
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from urllib.parse import quote_plus
 from app.config import settings
+import os
 
-# Supports both MySQL (local) and PostgreSQL (production)
-if settings.DB_HOST and "render" in settings.DB_HOST:
-    DATABASE_URL = (
-        f"postgresql://{settings.DB_USER}:{settings.DB_PASSWORD}"
-        f"@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
-    )
+# Check if DATABASE_URL is provided directly (Render provides this)
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if DATABASE_URL:
+    # Render provides PostgreSQL URL starting with postgres://
+    # SQLAlchemy needs postgresql://
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 else:
+    # Local development — use MySQL
     password = quote_plus(settings.DB_PASSWORD)
     DATABASE_URL = (
         f"mysql+pymysql://{settings.DB_USER}:{password}"
