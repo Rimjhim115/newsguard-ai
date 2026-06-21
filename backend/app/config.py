@@ -23,6 +23,7 @@ class Settings(BaseSettings):
 
     # App settings
     APP_ENV: str = "development"
+    YOUTUBE_API_KEY: str = "AIzaSyB6Uyh75TM1qdDd4xj3Tk4m12UAW3EPOfU"
 
     class Config:
         env_file = ".env"  # Tells pydantic where to read from

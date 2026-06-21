@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.db.database import engine
 from app.db import models
-from app.api.v1 import auth, predictions, users
+from app.api.v1 import auth, predictions, users, verification
 from app.ml.model import classifier
 
 models.Base.metadata.create_all(bind=engine)
@@ -18,9 +18,10 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="NewsGuard AI",
     description="Full-Stack News Verification Platform",
-    version="1.0.0",
+    version="2.0.0",
     lifespan=lifespan
 )
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -38,7 +39,8 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(users.router, prefix="/api/v1")
 app.include_router(predictions.router, prefix="/api/v1")
+app.include_router(verification.router, prefix="/api/v1")
 
 @app.get("/health")
 def health_check():
-    return {"status": "healthy", "service": "NewsGuard AI"}
+    return {"status": "healthy", "service": "NewsGuard AI v2.0"}
