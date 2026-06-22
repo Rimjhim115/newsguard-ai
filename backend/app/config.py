@@ -1,10 +1,4 @@
 # backend/app/config.py
-# PURPOSE: Central configuration management.
-# Pydantic-settings reads from your .env file and validates
-# that all required variables are present.
-# If SECRET_KEY is missing from .env, the app won't start
-# at all — failing loudly is better than failing silently.
-
 from pydantic_settings import BaseSettings
 
 
@@ -23,12 +17,12 @@ class Settings(BaseSettings):
 
     # App settings
     APP_ENV: str = "development"
-    
+
+    # YouTube API
+    YOUTUBE_API_KEY: str = ""    # ← this was missing
 
     class Config:
-        env_file = ".env"  # Tells pydantic where to read from
+        env_file = ".env"
 
 
-# Create a single instance — imported everywhere else
-# This is the Singleton pattern
 settings = Settings()
