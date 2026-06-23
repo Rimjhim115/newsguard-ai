@@ -46,6 +46,16 @@ export default function CredibilityScoreCard({ report }) {
         </div>
       </div>
 
+      <div className="bg-gray-800 rounded-lg p-4">
+        <p className="text-gray-400 text-xs mb-1">ML Prediction</p>
+        <p className="text-sm font-semibold text-white">
+          {ml_prediction} <span className="text-gray-500 font-normal">{ml_confidence}%</span>
+        </p>
+        <p className="text-gray-600 text-xs mt-1">
+          ⚠️ Limited to training domain
+        </p>
+      </div>
+
       <div className="bg-yellow-900/20 border border-yellow-700/40 rounded-lg px-4 py-3">
         <p className="text-yellow-300 text-sm">⚠️ {explanation}</p>
       </div>

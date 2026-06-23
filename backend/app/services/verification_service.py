@@ -307,66 +307,48 @@ def calculate_credibility_score(
     ml_confidence: float
 ) -> Dict:
     """
-    Calculate overall credibility score.
-    
-    Source evidence is weighted far more heavily than the ML model,
-    since the ML model was trained on a narrow domain (2016-2018 
-    US political news) and is unreliable outside that scope.
-    ML acts as a tie-breaker/secondary signal, not a primary one.
+    Calculate credibility score based purely on source evidence.
+    ML prediction is shown in UI for transparency but does NOT
+    influence the score due to known domain bias.
     """
     if not sources:
-        # No sources found — ML is all we have, but flag it clearly
-        ml_score = ml_confidence * 100 if ml_prediction == "REAL" else (1 - ml_confidence) * 100
         return {
-            "score": int(ml_score * 0.3),
+            "score": 15,
             "verdict": "UNVERIFIED",
-            "explanation": "No recent news sources found covering this claim. ML model alone is unreliable — treat with caution."
+            "explanation": "No recent sources found covering this claim. Verify manually."
         }
 
     source_scores = [s["credibility"]["score"] for s in sources]
     avg_source_score = sum(source_scores) / len(source_scores)
 
-    highly_credible = len([s for s in sources if s["credibility"]["score"] >= 80])
+    highly_credible = len([s for s in sources if s["credibility"]["score"] >= 75])
     credible_count_score = min(highly_credible * 25, 100)
 
-    unique_domains = len(set([s["domain"] for s in sources]))
+    unique_domains = len(set([s["domain"] for s in sources if s["domain"]]))
     diversity_score = min(unique_domains * 15, 100)
 
-    if ml_prediction == "REAL":
-        ml_score = ml_confidence * 100
-    else:
-        ml_score = (1 - ml_confidence) * 100
-
-    # NEW WEIGHTING: source evidence dominates, ML is a minor signal
+    # Score based purely on source evidence
     final_score = int(
-        ml_score * 0.10 +              # ML: 30% → 10%
-        avg_source_score * 0.50 +      # sources: 40% → 50%
-        credible_count_score * 0.25 +  # credible count: 20% → 25%
-        diversity_score * 0.15         # diversity: 10% → 15%
+        avg_source_score * 0.55 +
+        credible_count_score * 0.30 +
+        diversity_score * 0.15
     )
 
     if final_score >= 75:
         verdict = "CREDIBLE"
-    elif final_score >= 50:
+    elif final_score >= 55:
         verdict = "POSSIBLY CREDIBLE"
-    elif final_score >= 30:
+    elif final_score >= 35:
         verdict = "QUESTIONABLE"
     else:
         verdict = "NOT CREDIBLE"
 
     if highly_credible >= 3:
-        explanation = f"Multiple credible sources ({highly_credible}) including major outlets have reported on this claim."
+        explanation = f"Multiple credible sources ({highly_credible}) have reported on this claim."
     elif highly_credible >= 1:
-        explanation = f"Some credible sources found ({highly_credible}). Verify with additional sources."
-    elif len(sources) > 0:
-        explanation = "Found in low-credibility sources only. Treat with caution."
+        explanation = f"Some credible sources found. Verify with additional sources."
     else:
-        explanation = "No credible sources found covering this claim."
-
-    # Note: ML prediction shown separately in UI, not hidden,
-    # but doesn't dominate the score when real evidence exists
-    if ml_prediction == "FAKE" and final_score >= 60:
-        explanation += " Note: our ML model flagged this as FAKE based on writing style, but real-time sources strongly support its credibility — the ML model's training data does not cover this topic well."
+        explanation = "Found in low-credibility sources only. Treat with caution."
 
     return {
         "score": final_score,
