@@ -160,55 +160,110 @@ def get_source_credibility(url: str) -> Dict:
 
 
 def search_news(claim: str, max_results: int = 8) -> List[Dict]:
-    """Search DuckDuckGo for RECENT news only — never return old articles."""
+    """Search using Google Custom Search API with DuckDuckGo as fallback."""
+    import requests
     import time
 
-    stopwords = {"the", "a", "an", "is", "are", "was", "were", "today", 
+    stopwords = {"the", "a", "an", "is", "are", "was", "were", "today",
                  "in", "on", "at", "to", "of", "and", "for", "this", "that",
                  "hits", "news", "latest"}
-    claim_words = [w.lower().strip(".,!?") for w in claim.split() 
+    claim_words = [w.lower().strip(".,!?") for w in claim.split()
                    if w.lower() not in stopwords and len(w) > 2]
 
-    def is_topic_page(url: str) -> bool:
-        markers = ["/topic/", "/tag/", "/tags/", "/topics/"]
-        return any(m in url.lower() for m in markers)
+    def is_topic_page(url):
+        return any(m in url.lower() for m in ["/topic/", "/tag/", "/tags/"])
 
     def is_relevant(item):
         url = item.get("url") or item.get("href", "")
         if is_topic_page(url):
             return False
         title = item.get("title", "").lower()
-        matches = sum(1 for w in claim_words if w in title)
-        return matches == len(claim_words)
+        text = title + " " + item.get("body", item.get("snippet", "")).lower()
+        matches = sum(1 for w in claim_words if w in text)
+        return matches >= max(1, len(claim_words) // 2)
 
-    # Try news search first — strictly limited to last week
+    # Try Google Custom Search first (reliable on server IPs)
+    api_key = settings.GOOGLE_SEARCH_API_KEY
+    engine_id = settings.GOOGLE_SEARCH_ENGINE_ID
+
+    if api_key and engine_id:
+        try:
+            params = {
+                "key": api_key,
+                "cx": engine_id,
+                "q": claim + " news",
+                "num": min(max_results, 10),
+                "dateRestrict": "m1",  # last 1 month
+            }
+
+            response = requests.get(
+                "https://www.googleapis.com/customsearch/v1",
+                params=params,
+                timeout=10
+            )
+            data = response.json()
+
+            results = []
+            for item in data.get("items", []):
+                title = item.get("title", "")
+                url = item.get("link", "")
+                snippet = item.get("snippet", "")
+
+                if is_topic_page(url):
+                    continue
+
+                text = (title + " " + snippet).lower()
+                matches = sum(1 for w in claim_words if w in text)
+                if claim_words and matches < max(1, len(claim_words) // 2):
+                    continue
+
+                results.append({
+                    "title": title,
+                    "url": url,
+                    "body": snippet,
+                    "source": item.get("displayLink", ""),
+                    "date": item.get("pagemap", {}).get("metatags", [{}])[0].get("article:published_time", "")
+                })
+
+            if results:
+                print(f"Google Search found {len(results)} results")
+                return results[:max_results]
+            else:
+                print("Google Search returned 0 relevant results, falling back to DuckDuckGo")
+
+        except Exception as e:
+            print(f"Google Search error: {e}")
+
+    # Fallback to DuckDuckGo (works locally)
+    print("Using DuckDuckGo fallback...")
     raw_results = []
-    for attempt in range(3):
+    for attempt in range(2):
         try:
             with DDGS() as ddgs:
                 raw_results = list(ddgs.news(
                     query=claim,
                     max_results=max_results * 3,
-                    timelimit="w"   # last week ONLY
+                    timelimit="m"
                 ))
                 if raw_results:
                     break
-                time.sleep(2)
+                time.sleep(3)
         except Exception as e:
-            print(f"DuckDuckGo news attempt {attempt + 1} failed: {e}")
-            time.sleep(3)
+            print(f"DuckDuckGo attempt {attempt + 1} failed: {e}")
+            time.sleep(5)
 
     filtered = [r for r in raw_results if is_relevant(r)] if claim_words else raw_results
+
     if filtered:
         return filtered[:max_results]
 
-    # Fallback: text search, but STILL restricted to last week
+    # Text search fallback
     try:
         with DDGS() as ddgs:
             text_results = list(ddgs.text(
                 query=f"{claim} news",
                 max_results=max_results * 3,
-                timelimit="w"   # last week ONLY — same restriction
+                timelimit="w"
             ))
             filtered_text = [r for r in text_results if is_relevant(r)] if claim_words else text_results
             return filtered_text[:max_results]

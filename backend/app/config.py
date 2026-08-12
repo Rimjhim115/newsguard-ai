@@ -20,6 +20,8 @@ class Settings(BaseSettings):
 
     # YouTube API
     YOUTUBE_API_KEY: str = ""    # ← this was missing
+    GOOGLE_SEARCH_API_KEY: str = ""
+    GOOGLE_SEARCH_ENGINE_ID: str = ""
 
     class Config:
         env_file = ".env"
