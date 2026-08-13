@@ -286,7 +286,7 @@ def search_youtube(claim: str, max_results: int = 5) -> List[Dict]:
             q=claim,
             part="snippet",
             type="video",
-            order="date",
+            order="relevance",
             maxResults=max_results,
             relevanceLanguage="en",
             publishedAfter=published_after
@@ -361,11 +361,6 @@ def calculate_credibility_score(
     ml_prediction: str,
     ml_confidence: float
 ) -> Dict:
-    """
-    Calculate credibility score based purely on source evidence.
-    ML prediction is shown in UI for transparency but does NOT
-    influence the score due to known domain bias.
-    """
     if not sources:
         return {
             "score": 15,
@@ -382,18 +377,17 @@ def calculate_credibility_score(
     unique_domains = len(set([s["domain"] for s in sources if s["domain"]]))
     diversity_score = min(unique_domains * 15, 100)
 
-    # Score based purely on source evidence
     final_score = int(
         avg_source_score * 0.55 +
         credible_count_score * 0.30 +
         diversity_score * 0.15
     )
 
-    if final_score >= 75:
+    if final_score >= 70:
         verdict = "CREDIBLE"
-    elif final_score >= 55:
+    elif final_score >= 50:
         verdict = "POSSIBLY CREDIBLE"
-    elif final_score >= 35:
+    elif final_score >= 30:
         verdict = "QUESTIONABLE"
     else:
         verdict = "NOT CREDIBLE"
