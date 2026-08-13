@@ -444,8 +444,19 @@ def verify_news(
 
     trusted_video_count = len([v for v in youtube_videos if v["is_trusted_channel"]])
     if trusted_video_count > 0:
-        credibility_report["score"] = min(100, credibility_report["score"] + (trusted_video_count * 5))
+        new_score = min(100, credibility_report["score"] + (trusted_video_count * 5))
+        credibility_report["score"] = new_score
         credibility_report["explanation"] += f" Also covered by {trusted_video_count} trusted news channel(s) on YouTube."
+    
+    # Recalculate verdict after YouTube boost
+        if new_score >= 70:
+            credibility_report["verdict"] = "CREDIBLE"
+        elif new_score >= 50:
+            credibility_report["verdict"] = "POSSIBLY CREDIBLE"
+        elif new_score >= 30:
+            credibility_report["verdict"] = "QUESTIONABLE"
+        else:
+            credibility_report["verdict"] = "NOT CREDIBLE"
 
     return {
         "claim": claim,
